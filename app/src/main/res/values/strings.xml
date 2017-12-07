@@ -33,4 +33,5 @@
     <string name="lbl_forgot_password">Forgot password?</string>
     <string name="forgot_password_msg">We just need your registered Email Id to sent you password reset instructions.</string>
     <string name="title_activity_signup">SignupActivity</string>
+    <string name="already_create_account_with_this_email">Someone with this email has already created an account, please try a different login method</string>
 </resources>
