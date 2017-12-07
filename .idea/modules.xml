@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://C:\Users\cadri\AndroidStudioProjects\android-kotlin-firebase-authentication\android-kotlin-dagger2-starter.iml" filepath="C:\Users\cadri\AndroidStudioProjects\android-kotlin-firebase-authentication\android-kotlin-dagger2-starter.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android-kotlin-firebase-authentication.iml" filepath="$PROJECT_DIR$/android-kotlin-firebase-authentication.iml" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+    </modules>
+  </component>
+</project>
