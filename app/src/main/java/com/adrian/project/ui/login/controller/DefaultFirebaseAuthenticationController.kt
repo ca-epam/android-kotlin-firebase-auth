@@ -2,8 +2,8 @@ package com.adrian.project.ui.login.controller
 
 import android.util.Log
 import com.adrian.project.R
+import com.adrian.project.ui.login.view.FirebaseAuthenticationListener
 import com.adrian.project.ui.login.view.LoginActivity
-import com.adrian.project.ui.login.view.LoginActivityRouter
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
@@ -14,159 +14,111 @@ import com.google.firebase.auth.*
 
 
 /**
+ * FirebaseAuthentication controller class, to separate firebase logic from your login activity
  * Created by Adrian_Czigany on 12/7/2017.
  */
 
-class DefaultFirebaseAuthenticationController constructor(val activity: LoginActivity, val router: LoginActivityRouter) : FirebaseAuthenticationController {
-
-
-    var firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
+class DefaultFirebaseAuthenticationController constructor(val activity: LoginActivity, val firebaseAuthenticationListener: FirebaseAuthenticationListener) : FirebaseAuthenticationController {
 
     private lateinit var googleSignInOptions: GoogleSignInOptions;
     private lateinit var googleSignInClient: GoogleSignInClient
 
+    private var firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
+
     init {
-        setupGoogleLogin()
+        setupGoogleOptions()
     }
 
-    override fun checkCurrentUser() {
-        if (firebaseAuth?.currentUser != null) {
-            router.navigateToApp()
-        }
+    override fun checkCurrentUser(): Boolean {
+        return firebaseAuth?.currentUser != null
     }
 
-    override fun onLoginClicked(email: String, password: String) {
-        router.showProgessBar()
+    override fun requestForGoogleAuthenticate() {
+        val signInIntent = googleSignInClient.getSignInIntent()
+        firebaseAuthenticationListener.onRequestForGoogleAuthenticate(signInIntent)
+    }
 
+    override fun signInWithEmailAndPassword(email: String, password: String) {
+        firebaseAuthenticationListener.authenticationLoadingStart()
         firebaseAuth.signInWithEmailAndPassword(email, password)
                 .addOnCompleteListener(activity, object : OnCompleteListener<AuthResult> {
                     override fun onComplete(task: Task<AuthResult>) {
-                        // If sign in fails, display a message to the user. If sign in succeeds
-                        // the auth state listener will be notified and logic to handle the
-                        // signed in user can be handled in the listener.
-                        router.hideProgessBar()
-                        if (!task.isSuccessful()) {
-                            // there was an error
-                            if (password.length < 6) {
-                                router.toast(LoginActivity.MINIMUM_PASSWORD)
-                            } else {
-                                router.toast(LoginActivity.AUTH_FAILED)
-                            }
+                        firebaseAuthenticationListener.authenticationLoadingEnd()
+                        if (task.isSuccessful()) {
+                            firebaseAuthenticationListener.onSuccessfulEmailPasswordLogin()
                         } else {
-                            router.navigateToApp()
+                            if (password.length < 6) {
+                                firebaseAuthenticationListener.errorMessage(LoginActivity.MINIMUM_PASSWORD)
+                            } else {
+                                firebaseAuthenticationListener.errorMessage(LoginActivity.AUTH_FAILED)
+                            }
                         }
                     }
                 })
     }
 
-    override fun onResetPasswordClicked() {
-        router.navigateToResetPasswordActivity()
-    }
-
-    override fun onSignupButtonClicked() {
-        router.navigateToSignupActivity()
-    }
-
-
-    // GOOGLE login
-
-    override fun setupGoogleLogin() {
-        googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(activity.getString(R.string.default_web_client_id))
-                .requestEmail()
-                .build()
-
-        googleSignInClient = GoogleSignIn.getClient(activity, googleSignInOptions);
-    }
-
-    override fun signInWithEmailAndPassword(email: String, password: String) {
-        firebaseAuth.signInWithEmailAndPassword(email, password)
-                .addOnCompleteListener { task ->
-                    // If sign in fails, display a message to the user. If sign in succeeds
-                    // the auth state listener will be notified and logic to handle the
-                    // signed in user can be handled in the listener.
-                    router.hideProgessBar()
-                    if (!task.isSuccessful()) {
-                        if (password.length < 6) {
-                            router.toast(LoginActivity.MINIMUM_PASSWORD)
-                        } else {
-                            router.toast(LoginActivity.AUTH_FAILED)
-                        }
-                    } else {
-                        router.navigateToApp()
-                    }
-                }
-    }
-
-    override fun onGoogleLoginClicked() {
-        val signInIntent = googleSignInClient.getSignInIntent()
-        router.openGoogleLoginPopup(signInIntent)
-    }
-
     override fun firebaseAuthWithGoogle(acct: GoogleSignInAccount) {
         Log.e("LOG", "firebaseAuthWithGoogle:" + acct.id!!)
-
         val credential = GoogleAuthProvider.getCredential(acct.idToken, null)
-//        authoriseWithFirebase(credential)
+        // linkGoogleAccountWithExistingAccount(credential)
         signInWithCredential(credential)
     }
 
-    /**
-     * Call this method, to sign in with google account
-     */
+
+    override fun firebaseAuthWithFacebook() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun firebaseAuthWithTwitter() {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    // TODO implement
+    override fun checkIfEmailIsRegisteredAlready(email: String): Boolean {
+        // val queryResult = firebaseAuth.fetchProvidersForEmail(email)
+        return false
+    }
+
     private fun signInWithCredential(credential: AuthCredential) {
-        // this will override the email-pwd account if email is exist.
-        // Need to check if email is already exist  with email-pwd pair !!!!!!!!
         firebaseAuth.signInWithCredential(credential)
                 .addOnCompleteListener(activity, OnCompleteListener<AuthResult> { task ->
                     if (task.isSuccessful) {
                         // Sign in success, update UI with the signed-in user's information
                         Log.e("LOG", "signInWithCredential:success")
                         val user = firebaseAuth.currentUser
-                        router.navigateToApp()
+                        firebaseAuthenticationListener.onSuccessfulGoogleLogin()
                     } else {
                         // if user enters wrong email.
                         // if user enters wrong password.
-
                         // If sign in fails, display a message to the user.
                         Log.e("LOG", "signInWithCredential:failure", task.exception)
-                        router.toast(LoginActivity.AUTH_FAILED)
+                        firebaseAuthenticationListener.errorMessage(LoginActivity.AUTH_FAILED)
                     }
                 })
-    }
-
-    /**
-     * Use this method to check whether email is already registered in Firebase
-     */
-    override fun checkIfEmailIsRegisteredAlready(email: String): Boolean {
-        val queryResult = firebaseAuth.fetchProvidersForEmail(email)
-
-        return false
     }
 
     /**
      * Call this method, if user signed in with email-password pair,
      * and you want to link this account with google account
      */
-    private fun authoriseWithFirebase(credential: AuthCredential) {
+    private fun linkGoogleAccountWithExistingAccount(credential: AuthCredential) {
         mergeWithCurrentUser(credential)
     }
 
     private fun mergeWithCurrentUser(credential: AuthCredential) {
         firebaseAuth.currentUser?.linkWithCredential(credential)?.addOnCompleteListener(activity) { task ->
             if (task.isSuccessful) {
-                router.finishActivity()
+                firebaseAuthenticationListener.onSuccessfulGoogleLogin()
             } else {
                 val exception = task.exception
                 if (exception == null) {
-                    router.toast(LoginActivity.AUTH_FAILED)
+                    firebaseAuthenticationListener.errorMessage(LoginActivity.AUTH_FAILED)
                     return@addOnCompleteListener
                 }
                 if (exception is FirebaseAuthUserCollisionException) {
                     signInNewUser(credential)
                 } else {
-                    router.toast(LoginActivity.ALREADY_CREATED_ACCOUNT_WITH_THI_EMAIL, exception.localizedMessage)
-//                    tvTextLog.text = "Firebase Authorisation Failed: ${exception.localizedMessage}"
+                    firebaseAuthenticationListener.errorMessage(LoginActivity.ALREADY_CREATED_ACCOUNT_WITH_THI_EMAIL)
                 }
             }
         }
@@ -176,22 +128,27 @@ class DefaultFirebaseAuthenticationController constructor(val activity: LoginAct
         firebaseAuth.signInWithCredential(credential)
                 .addOnCompleteListener(activity) { task ->
                     if (task.isSuccessful) {
-                        router.finishActivity()
+                        firebaseAuthenticationListener.onSuccessfulGoogleLogin()
                     } else {
                         val exception = task.exception
                         if (exception == null) {
-//                            tvTextLog.text = "Firebase Authorisation Failed: Unknown reason"
-                            router.toast(LoginActivity.AUTH_FAILED)
+                            firebaseAuthenticationListener.errorMessage(LoginActivity.AUTH_FAILED)
                             return@addOnCompleteListener
                         }
                         if (exception is FirebaseAuthUserCollisionException) {
-                            router.toast(LoginActivity.ALREADY_CREATED_ACCOUNT_WITH_THI_EMAIL)
-//                            tvTextLog.text = context.getString(R.string.already_create_account_with_this_email)
+                            firebaseAuthenticationListener.errorMessage(LoginActivity.ALREADY_CREATED_ACCOUNT_WITH_THI_EMAIL)
                         } else {
-                            router.toast(LoginActivity.ALREADY_CREATED_ACCOUNT_WITH_THI_EMAIL, exception.localizedMessage)
-//                            tvTextLog.text = "Firebase Authorisation Failed: ${exception.localizedMessage}"
+                            firebaseAuthenticationListener.errorMessage(LoginActivity.ALREADY_CREATED_ACCOUNT_WITH_THI_EMAIL)
                         }
                     }
                 }
+    }
+
+    private fun setupGoogleOptions() {
+        googleSignInOptions = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestIdToken(activity.getString(R.string.default_web_client_id))
+                .requestEmail()
+                .build()
+        googleSignInClient = GoogleSignIn.getClient(activity, googleSignInOptions);
     }
 }

@@ -7,21 +7,41 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
  */
 interface FirebaseAuthenticationController {
 
-    fun checkCurrentUser()
+    /**
+     * Call when user click on Google login button
+     */
+    fun requestForGoogleAuthenticate()
 
-    fun setupGoogleLogin()
-
+    /**
+     * Sign in with Email password pair via Firebase
+     */
     fun signInWithEmailAndPassword(email: String, password: String);
 
-    fun onResetPasswordClicked()
-
-    fun onLoginClicked(email: String, password: String)
-
-    fun onSignupButtonClicked()
-
-    fun onGoogleLoginClicked()
-
+    /**
+     * Authenticate Google account via Firebase
+     */
     fun firebaseAuthWithGoogle(acct: GoogleSignInAccount)
 
+    /**
+     * Authenticate Facebook account via Firebase
+     */
+    fun firebaseAuthWithFacebook(/*acc: FacebookAccount */)
+
+    /**
+     * Authenticate Twitter account via Firebase
+     */
+    fun firebaseAuthWithTwitter(/*acc: TwitterAccount */)
+
+    /**
+     * Use this method to check whether email is already registered in Firebase
+     * @return true if email is registered already
+     */
     fun checkIfEmailIsRegisteredAlready(email: String): Boolean
+
+    /**
+     * Check user is logged in to the app
+     * @return true if user is logged in, false if not
+     */
+    fun checkCurrentUser(): Boolean
+
 }

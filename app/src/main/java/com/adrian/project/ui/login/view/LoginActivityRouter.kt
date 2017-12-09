@@ -1,35 +1,32 @@
 package com.adrian.project.ui.login.view
 
-import android.content.Intent
-
 /**
  * Created by Adrian_Czigany on 12/7/2017.
  */
 interface LoginActivityRouter {
 
-    fun showProgessBar()
-
-    fun hideProgessBar()
-
-    fun toast(stringId: Int)
-
-    fun toast(stringId: Int, message: String)
-
-    fun toast(message: String)
-
+    /**
+     * Method is called when login was successful, or user is logged in
+     */
     fun navigateToApp()
 
-    fun onUserPasswordLogin()
-
-    fun onGoogleLogin()
-
-    fun onUnSuccessLogin()
-
-    fun openGoogleLoginPopup(intent: Intent)
-
-    fun finishActivity()
-
+    /**
+     * Navigate to "sign up" page
+     */
     fun navigateToSignupActivity()
 
+    /**
+     * Navigate to "reset password" page
+     */
     fun navigateToResetPasswordActivity()
+
+    /**
+     * Show progressbar
+     */
+    fun showProgessBar()
+
+    /**
+     * Hide progressbar
+     */
+    fun hideProgessBar()
 }

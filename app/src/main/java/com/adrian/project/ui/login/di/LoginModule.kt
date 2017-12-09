@@ -4,6 +4,7 @@ import com.adrian.kotlinrecyclerviewdagger.main.di.ActivityScope
 import com.adrian.project.ui.login.controller.DefaultFirebaseAuthenticationController
 import com.adrian.project.ui.login.controller.FirebaseAuthenticationController
 import com.adrian.project.ui.login.model.LoginModel
+import com.adrian.project.ui.login.view.FirebaseAuthenticationListener
 import com.adrian.project.ui.login.view.LoginActivity
 import com.adrian.project.ui.login.view.LoginActivityRouter
 import dagger.Module
@@ -27,7 +28,12 @@ class LoginModule {
 
     @Provides
     @ActivityScope
-    fun provideFirebaseAuthenticationController(activity: LoginActivity, loginActivityRouter: LoginActivityRouter): FirebaseAuthenticationController
-            = DefaultFirebaseAuthenticationController(activity, loginActivityRouter)
+    fun provideFirebaseActionListener(loginActivity: LoginActivity): FirebaseAuthenticationListener
+            = loginActivity
+
+    @Provides
+    @ActivityScope
+    fun provideFirebaseAuthenticationController(activity: LoginActivity, firebaseAuthenticationListener: FirebaseAuthenticationListener): FirebaseAuthenticationController
+            = DefaultFirebaseAuthenticationController(activity, firebaseAuthenticationListener)
 
 }

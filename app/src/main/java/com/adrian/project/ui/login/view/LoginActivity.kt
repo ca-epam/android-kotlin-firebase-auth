@@ -14,19 +14,13 @@ import com.adrian.project.ui.resetpasswordactivity.view.ResetPasswordActivity
 import com.adrian.project.ui.signup.view.SignupActivity
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
-import com.google.android.gms.auth.api.signin.GoogleSignInClient
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.api.GoogleApiClient
-import com.google.firebase.auth.FirebaseAuth
 import dagger.android.AndroidInjection
 import kotlinx.android.synthetic.main.activity_login.*
 import javax.inject.Inject
 
 
-class LoginActivity : AppCompatActivity(), LoginActivityRouter {
-
-    private val RC_SIGN_IN = 9001
+class LoginActivity : AppCompatActivity(), LoginActivityRouter, FirebaseAuthenticationListener {
 
     companion object {
         var MINIMUM_PASSWORD = R.string.minimum_password
@@ -34,32 +28,53 @@ class LoginActivity : AppCompatActivity(), LoginActivityRouter {
         var ALREADY_CREATED_ACCOUNT_WITH_THI_EMAIL = R.string.already_create_account_with_this_email
     }
 
-    lateinit var firebaseAuth: FirebaseAuth
+    object log {
+        val TAG = LoginActivity::class.java.simpleName
+    }
 
     @Inject
     lateinit var firebaseAuthenticationController: FirebaseAuthenticationController
 
-    private lateinit var googleSignInOptions: GoogleSignInOptions
-    private lateinit var googleApiClient: GoogleApiClient
-    private lateinit var googleSignInClient: GoogleSignInClient
+    private val RC_SIGN_IN = 9001
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        firebaseAuth = FirebaseAuth.getInstance()
-        setContentView(R.layout.activity_login)
-
         AndroidInjection.inject(this)
+        setContentView(R.layout.activity_login)
 
         checkCurrentUser()
 
-        // email-password login
+        // for email-password login
         signupButtonListener()
         resetPasswordButtonListener()
         loginButtonListener()
 
-        // google login
-        setupGoogleLogin()
+        // for google login
         googleLoginButtonListener()
+    }
+
+    override fun onRequestForGoogleAuthenticate(signInIntent: Intent) {
+        startActivityForResult(intent, RC_SIGN_IN)
+    }
+
+    override fun onSuccessfulEmailPasswordLogin() {
+        Log.e(log.TAG, "onSuccessfulEmailPasswordLogin ....")
+        navigateToApp()
+    }
+
+    override fun onSuccessfulGoogleLogin() {
+        Log.e(log.TAG, "onSuccessfulGoogleLogin ....")
+        navigateToApp()
+    }
+
+    override fun onSuccessfulFacebookLogin() {
+        // Log.e(log.TAG, "onSuccessfulFacebookLogin ....")
+        // navigateToApp()
+    }
+
+    override fun onSuccessfulTwitterLogin() {
+        // Log.e(log.TAG, "onSuccessfulTwitterLogin ....")
+        // navigateToApp()
     }
 
 
@@ -71,37 +86,21 @@ class LoginActivity : AppCompatActivity(), LoginActivityRouter {
         progressBar.visibility = View.GONE
     }
 
-    override fun toast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    override fun authenticationLoadingStart() {
+        showProgessBar()
     }
 
-    override fun toast(stringId: Int) {
-        Toast.makeText(this, resources.getString(stringId), Toast.LENGTH_SHORT).show()
+    override fun authenticationLoadingEnd() {
+        hideProgessBar()
     }
 
-    override fun toast(stringId: Int, message: String) {
-        Toast.makeText(this, resources.getString(stringId) + " " + message, Toast.LENGTH_SHORT).show()
+    override fun errorMessage(stringId: Int) {
+        toast(stringId)
     }
 
     override fun navigateToApp() {
         startActivity(Intent(this@LoginActivity, MainActivity::class.java))
         finish()
-    }
-
-    override fun onUserPasswordLogin() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onGoogleLogin() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onUnSuccessLogin() {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun openGoogleLoginPopup(intent: Intent) {
-        startActivityForResult(intent, RC_SIGN_IN)
     }
 
     override fun navigateToSignupActivity() {
@@ -112,15 +111,27 @@ class LoginActivity : AppCompatActivity(), LoginActivityRouter {
         startActivity(Intent(this@LoginActivity, ResetPasswordActivity::class.java))
     }
 
-    override fun finishActivity() {
-        finish()
+    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode === RC_SIGN_IN) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            try {
+                // Google Sign In was successful, authenticate with Firebase
+                val account = task.getResult(ApiException::class.java)
+                firebaseAuthWithGoogle(account)
+            } catch (e: ApiException) {
+                // Google Sign In failed, update UI appropriately
+                Toast.makeText(this, "Unsuccesful authenticate!", Toast.LENGTH_SHORT)
+                Log.e("LOG", "Google sign in failed", e)
+            }
+        }
     }
-
 
     private fun checkCurrentUser() {
-        firebaseAuthenticationController.checkCurrentUser()
+        if (firebaseAuthenticationController.checkCurrentUser()) {
+            navigateToApp()
+        }
     }
-
 
     private fun loginButtonListener() {
         btnLogin.setOnClickListener(object : View.OnClickListener {
@@ -132,78 +143,33 @@ class LoginActivity : AppCompatActivity(), LoginActivityRouter {
                     Toast.makeText(applicationContext, "Enter email address!", Toast.LENGTH_SHORT).show()
                     return
                 }
-
                 if (TextUtils.isEmpty(password)) {
                     Toast.makeText(applicationContext, "Enter password!", Toast.LENGTH_SHORT).show()
                     return
                 }
 
-                firebaseAuthenticationController.onLoginClicked(email, password)
+                firebaseAuthenticationController.signInWithEmailAndPassword(email, password)
             }
         })
     }
 
     private fun resetPasswordButtonListener() {
-        btnResetPassword.setOnClickListener(object : View.OnClickListener {
-            override fun onClick(v: View) {
-                firebaseAuthenticationController.onResetPasswordClicked()
-            }
-        })
+        btnResetPassword.setOnClickListener { navigateToResetPasswordActivity() }
     }
 
     private fun signupButtonListener() {
-        btnSignup.setOnClickListener(object : View.OnClickListener {
-            override fun onClick(v: View) {
-                firebaseAuthenticationController.onSignupButtonClicked()
-            }
-        })
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-    private fun setupGoogleLogin() {
-        firebaseAuthenticationController.setupGoogleLogin()
+        btnSignup.setOnClickListener { navigateToSignupActivity() }
     }
 
     private fun googleLoginButtonListener() {
-        btnGoogleLogin.setOnClickListener(View.OnClickListener {
-            firebaseAuthenticationController.onGoogleLoginClicked()
-        })
-    }
-
-    public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
-        super.onActivityResult(requestCode, resultCode, data)
-
-        firebaseAuthenticationController.checkIfEmailIsRegisteredAlready("c.adrian89@gmail.com")
-        if (requestCode === RC_SIGN_IN) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
-            try {
-                // Google Sign In was successful, authenticate with Firebase
-                val account = task.getResult(ApiException::class.java)
-
-//                firebaseAuthenticationController.checkIfEmailIsRegisteredAlready(account.email!!)
-
-                firebaseAuthWithGoogle(account)
-            } catch (e: ApiException) {
-                // Google Sign In failed, update UI appropriately
-                Toast.makeText(this, "Unsuccesful authenticate!", Toast.LENGTH_SHORT)
-                Log.w("LOG", "Google sign in failed", e)
-            }
-        }
+        btnGoogleLogin.setOnClickListener { firebaseAuthenticationController.requestForGoogleAuthenticate() }
     }
 
     private fun firebaseAuthWithGoogle(acct: GoogleSignInAccount) {
         firebaseAuthenticationController.firebaseAuthWithGoogle(acct)
     }
 
-    fun onError(errorMessage: String) {
-        tvTextLog.setText(errorMessage)
+    private fun toast(stringId: Int) {
+        Toast.makeText(this, resources.getString(stringId), Toast.LENGTH_SHORT).show()
     }
-
 }
