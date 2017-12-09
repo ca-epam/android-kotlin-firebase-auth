@@ -12,6 +12,7 @@ import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.*
 
+
 /**
  * Created by Adrian_Czigany on 12/7/2017.
  */
@@ -23,6 +24,10 @@ class DefaultFirebaseAuthenticationController constructor(val activity: LoginAct
 
     private lateinit var googleSignInOptions: GoogleSignInOptions;
     private lateinit var googleSignInClient: GoogleSignInClient
+
+    init {
+        setupGoogleLogin()
+    }
 
     override fun checkCurrentUser() {
         if (firebaseAuth?.currentUser != null) {
@@ -110,7 +115,6 @@ class DefaultFirebaseAuthenticationController constructor(val activity: LoginAct
      * Call this method, to sign in with google account
      */
     private fun signInWithCredential(credential: AuthCredential) {
-
         // this will override the email-pwd account if email is exist.
         // Need to check if email is already exist  with email-pwd pair !!!!!!!!
         firebaseAuth.signInWithCredential(credential)
@@ -121,11 +125,23 @@ class DefaultFirebaseAuthenticationController constructor(val activity: LoginAct
                         val user = firebaseAuth.currentUser
                         router.navigateToApp()
                     } else {
+                        // if user enters wrong email.
+                        // if user enters wrong password.
+
                         // If sign in fails, display a message to the user.
                         Log.e("LOG", "signInWithCredential:failure", task.exception)
                         router.toast(LoginActivity.AUTH_FAILED)
                     }
                 })
+    }
+
+    /**
+     * Use this method to check whether email is already registered in Firebase
+     */
+    override fun checkIfEmailIsRegisteredAlready(email: String): Boolean {
+        val queryResult = firebaseAuth.fetchProvidersForEmail(email)
+
+        return false
     }
 
     /**
@@ -144,7 +160,6 @@ class DefaultFirebaseAuthenticationController constructor(val activity: LoginAct
                 val exception = task.exception
                 if (exception == null) {
                     router.toast(LoginActivity.AUTH_FAILED)
-//                    tvTextLog.text = "Firebase Authorisation Failed: Unknown reason"
                     return@addOnCompleteListener
                 }
                 if (exception is FirebaseAuthUserCollisionException) {

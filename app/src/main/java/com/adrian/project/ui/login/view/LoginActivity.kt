@@ -179,11 +179,16 @@ class LoginActivity : AppCompatActivity(), LoginActivityRouter {
 
     public override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
         super.onActivityResult(requestCode, resultCode, data)
+
+        firebaseAuthenticationController.checkIfEmailIsRegisteredAlready("c.adrian89@gmail.com")
         if (requestCode === RC_SIGN_IN) {
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             try {
                 // Google Sign In was successful, authenticate with Firebase
                 val account = task.getResult(ApiException::class.java)
+
+//                firebaseAuthenticationController.checkIfEmailIsRegisteredAlready(account.email!!)
+
                 firebaseAuthWithGoogle(account)
             } catch (e: ApiException) {
                 // Google Sign In failed, update UI appropriately

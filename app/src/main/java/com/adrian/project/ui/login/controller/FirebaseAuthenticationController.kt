@@ -22,4 +22,6 @@ interface FirebaseAuthenticationController {
     fun onGoogleLoginClicked()
 
     fun firebaseAuthWithGoogle(acct: GoogleSignInAccount)
+
+    fun checkIfEmailIsRegisteredAlready(email: String): Boolean
 }
