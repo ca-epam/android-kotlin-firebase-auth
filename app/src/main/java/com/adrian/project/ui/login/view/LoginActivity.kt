@@ -54,7 +54,7 @@ class LoginActivity : AppCompatActivity(), LoginActivityRouter, FirebaseAuthenti
     }
 
     override fun onRequestForGoogleAuthenticate(signInIntent: Intent) {
-        startActivityForResult(intent, RC_SIGN_IN)
+        startActivityForResult(signInIntent, RC_SIGN_IN)
     }
 
     override fun onSuccessfulEmailPasswordLogin() {
